@@ -1,18 +1,28 @@
+if(!crossOriginIsolated) SharedArrayBuffer = ArrayBuffer;
+let sharedBuffer = new SharedArrayBuffer(0);
 const locals = {
     cols: 0,
     rows: 0,
-    halt: false,
-    grid:[[0]],
+    started: false,
+    gridBuffer: new Int8Array(),
+    grid: [[0]],
+    setGridIntBufferVal(col=0, row=0, val=0) {
+        locals.gridBuffer[(col*locals.rows) + row] = val;
+    },
     initGrid() {
+        locals.started = true;
+        sharedBuffer = new SharedArrayBuffer(locals.cols * locals.rows);
+        locals.gridBuffer = new Int8Array(sharedBuffer);
         locals.grid=[];
         for(let c=0,r,col; c<locals.cols; c++) {
             for (col=[],r=0; r<locals.rows; r++) {
                 col[r] = Math.round(Math.random());
+                locals.setGridIntBufferVal(c, r, col[r]);
             }
             locals.grid[c]=col
         }
-        postMessage({grid: locals.grid});
-        locals.updateGrid();
+        postMessage({buffer: sharedBuffer});
+        setTimeout(locals.updateGrid(), 0);
     },
     nextCellValue(col=0, row=0) {
         let nc = [0,0], oldValue=locals.grid[col][row];
@@ -44,24 +54,32 @@ const locals = {
             grid[c]=col;
         }
         locals.grid = grid;
-        postMessage({grid});
-        if(!locals.halt) {
-            setTimeout(() => {
-                locals.updateGrid();
-            }, 20);
+    },
+    sendGrid() {
+        for(let c=0,r; c<locals.cols; c++) {
+            for (r=0; r<locals.rows; r++) {
+                locals.setGridIntBufferVal(c, r, locals.grid[c][r]);
+            }
         }
+        postMessage({buffer: sharedBuffer});
+        setTimeout(locals.updateGrid(), 0);
     }
 }
 
-onmessage = (ev) => {
-    if(ev.data.halt) locals.halt = true;
-    else if(ev.data.continue) {
-        locals.halt = false;
-        locals.updateGrid();
+onmessage = ({data}) => {
+    if(data.next && locals.started) locals.sendGrid();
+    else if(data.stop) {
+        locals.started = false;
+        setTimeout(() => {
+            sharedBuffer = null;
+            locals.cols = locals.rows = 0;
+            locals.gridBuffer = null;
+            locals.grid = null;
+        }, 0);
     }
-    else if(ev.data.cols && ev.data.rows) {
-        locals.cols = ev.data.cols;
-        locals.rows = ev.data.rows;
+    else if(data.cols && data.rows) {
+        locals.cols = data.cols;
+        locals.rows = data.rows;
         locals.initGrid();
     }
 }

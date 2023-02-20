@@ -38,8 +38,9 @@
 .play {
     background-color: blue;
 }
-.pause {
+.stop {
     background-color: yellow;
+    cursor: 'not-allowed';
 }
 .game {
     width: 90%;
@@ -51,6 +52,6 @@
     box-shadow: 1px 1px #aaa6a6, 2px 2px #878383, 3px 3px #524f4f;
 }
 .canvas {
-    width: 2000px;
-    height: 2000px;
+    width: 100%;
+    height: 100%;
 }
