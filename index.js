@@ -1,69 +1,118 @@
 const locals = (() => {
-    const canvas = document.getElementsByTagName("canvas").item(0), resolution=8;
+    const startButton = document.getElementById("start"), stopButton = document.getElementById("stop"), invertButton = document.getElementById("invert");
+    const worker = new Worker('./utility.js', {name: "Utility", credentials: 'same-origin'});
+    const canvas = document.getElementsByTagName("canvas").item(0), resolution=3;
     canvas.width = parseInt(canvas.clientWidth); canvas.height = parseInt(canvas.clientHeight);
-    const worker = new Worker('./utility.js');
-    let pendingUpdate = 0, halted=false;
+    let started=false, isPause = false, isInverted=false;
     worker.addEventListener('error', (event) => {
         console.error(event.error);
     });
-    worker.addEventListener('message', (event) => {
-        if(event.data.grid) {
-            pendingUpdate++;
-            setTimeout(() => {
-                locals.grid = event.data.grid;
-                locals.methods.renderGrid();
-                pendingUpdate--;
-                if(halted && pendingUpdate<5) locals.methods.continue();
-            }, 0);
-            if(pendingUpdate>10) locals.methods.halt();
+    worker.addEventListener('message', ({data}) => {
+        if(data.buffer) {
+            locals.grid = new Int8Array(data.buffer);
+            locals.methods.render();
+        } else if(data.stopped) {
+            locals.grid = new Int8Array(locals.cols * locals.rows);
+            locals.methods.render();
         }
     });
     return {
-        context: canvas.getContext("2d"), cols: parseInt(canvas.width/resolution), rows: parseInt(canvas.height/resolution),
-        grid: [[0]],
+        context: canvas.getContext("2d"), cols: parseInt(canvas.height/resolution), rows: parseInt(canvas.width/resolution),
+        grid: new Int8Array(0),
         methods: {
+            getGridVal(col=0, row=0) {
+                return locals.grid[(col*locals.rows) + row];
+            },
             start() {
-                worker.postMessage({cols: locals.cols, rows: locals.rows});
+                if(!started) {
+                    started = true; isPause = false;
+                    worker.postMessage({cols: locals.cols, rows: locals.rows});
+                    startButton.disabled = true;
+                    startButton.style.cursor = 'not-allowed';
+                    setTimeout(() => {
+                        startButton.innerHTML = 'Pause';
+                        startButton.disabled = false;
+                        startButton.style.cursor = 'pointer';
+                        stopButton.disabled = false;
+                        stopButton.style.cursor = 'pointer';
+                        invertButton.disabled = false;
+                        invertButton.style.cursor = 'pointer';
+                    }, 100);
+                } else {
+                    if(!isPause) {
+                        isPause = true;
+                        startButton.disabled = true;
+                        startButton.style.cursor = 'not-allowed';
+                        setTimeout(() => {
+                            startButton.innerHTML = 'Start';
+                            startButton.disabled = false;
+                            startButton.style.cursor = 'pointer';
+                        }, 100);
+                    } else {
+                        isPause = false;
+                        worker.postMessage({next: true});
+                        startButton.disabled = true;
+                        startButton.style.cursor = 'not-allowed';
+                        setTimeout(() => {
+                            startButton.innerHTML = 'Pause';
+                            startButton.disabled = false;
+                            startButton.style.cursor = 'pointer';
+                        }, 100);
+                    }
+                }
             },
-            halt() {
-                worker.postMessage({halt: (halted=true)});
-            },
-            continue() {
-                worker.postMessage({continue: !(halted=false)});
-            },
-            playPause() {
-                halted ? this.continue() : this.halt()
+            stop() {
+                started = false; isPause = true;
+                worker.postMessage({stop: true});
+                startButton.disabled = true;
+                startButton.style.cursor = 'not-allowed';
+                stopButton.disabled = true;
+                stopButton.style.cursor = 'not-allowed';
+                invertButton.disabled = true;
+                invertButton.style.cursor = 'not-allowed';
+                setTimeout(() => {
+                    startButton.innerHTML = 'Start';
+                    startButton.disabled = false;
+                    startButton.style.cursor = 'pointer';
+                }, 100);
             },
             drawPixel(col=0, row=0, value=0) {
                 locals.context.beginPath();
-                locals.context.rect(col*resolution,row*resolution,resolution,resolution);
-                locals.context.fillStyle = value ? 'black' : 'white';
+                locals.context.rect(row*resolution,col*resolution,resolution,resolution);
+                locals.context.fillStyle = (isInverted ^ value) ? 'black': 'white';
                 locals.context.fill();
             },
-            renderGrid() {
-                for(let c=0, cl=locals.grid.length,r,rl; c<cl; c++) {
-                    for (r=0, rl=locals.grid[c].length; r<rl; r++) {
-                        locals.methods.drawPixel(c, r, locals.grid[c][r]);
+            drawPlane() {
+                for(let c=0, r,cl=locals.cols, t; c<cl; c++) {
+                    for (r=0, rl=locals.rows; r<rl; r++) {
+                        locals.methods.drawPixel(c, r, locals.methods.getGridVal(c, r));
                     }
                 }
+            },
+            render() {
+                setTimeout(() => {
+                    locals.methods.drawPlane();
+                    if(started && !isPause) worker.postMessage({next: true});
+                }, 0);
+            },
+            invert() {
+                let p = isPause;
+                isPause = true;
+                isInverted = !isInverted;
+                locals.methods.render();
+                isPause = p;
             }
         }
     }
 })();
 
-let startButton = document.getElementById("start")
-let playButton = document.getElementById("play-pause")
 function start() {
     locals.methods.start();
-    startButton.disabled = true;
-    startButton.style.cursor = 'not-allowed';
-    setTimeout(() => {
-        startButton.innerHTML = 'Restart';
-        startButton.disabled = true;
-        startButton.style.cursor = 'pointer';
-    }, 100)
+}
+function stop() {
+    locals.methods.stop();
 }
 
-function playPause() {
-    locals.methods.playPause();
+function invert() {
+    locals.methods.invert();
 }
