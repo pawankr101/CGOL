@@ -1,9 +1,9 @@
 const locals = (() => {
-    const startButton = document.getElementById("start"), stopButton = document.getElementById("stop");
+    const startButton = document.getElementById("start"), stopButton = document.getElementById("stop"), invertButton = document.getElementById("invert");
     const worker = new Worker('./utility.js', {name: "Utility", credentials: 'same-origin'});
-    const canvas = document.getElementsByTagName("canvas").item(0), resolution=1;
+    const canvas = document.getElementsByTagName("canvas").item(0), resolution=3;
     canvas.width = parseInt(canvas.clientWidth); canvas.height = parseInt(canvas.clientHeight);
-    let started=false, isPause = false;
+    let started=false, isPause = false, isInverted=false;
     worker.addEventListener('error', (event) => {
         console.error(event.error);
     });
@@ -32,6 +32,8 @@ const locals = (() => {
                         startButton.style.cursor = 'pointer';
                         stopButton.disabled = false;
                         stopButton.style.cursor = 'pointer';
+                        invertButton.disabled = false;
+                        invertButton.style.cursor = 'pointer';
                     }, 100);
                 } else {
                     if(!isPause) {
@@ -62,6 +64,8 @@ const locals = (() => {
                 startButton.style.cursor = 'not-allowed';
                 stopButton.disabled = true;
                 stopButton.style.cursor = 'not-allowed';
+                invertButton.disabled = true;
+                invertButton.style.cursor = 'not-allowed';
                 worker.postMessage({stop: true});
                 locals.grid = new Int8Array(0);
                 locals.methods.render();
@@ -74,7 +78,7 @@ const locals = (() => {
             drawPixel(col=0, row=0, value=0) {
                 locals.context.beginPath();
                 locals.context.rect(row*resolution,col*resolution,resolution,resolution);
-                locals.context.fillStyle = value ? 'black' : 'white';
+                locals.context.fillStyle = (isInverted ^ value) ? 'black': 'white';
                 locals.context.fill();
             },
             drawPlane() {
@@ -89,6 +93,13 @@ const locals = (() => {
                     locals.methods.drawPlane();
                     if(started && !isPause) worker.postMessage({next: true});
                 }, 0);
+            },
+            invert() {
+                let p = isPause;
+                isPause = true;
+                isInverted = !isInverted;
+                locals.methods.render();
+                isPause = p;
             }
         }
     }
@@ -99,4 +110,8 @@ function start() {
 }
 function stop() {
     locals.methods.stop();
+}
+
+function invert() {
+    locals.methods.invert();
 }

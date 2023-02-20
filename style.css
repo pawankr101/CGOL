@@ -32,11 +32,12 @@
     width: 60px;
     cursor: pointer;
 }
+.invert {
+    background-color: #41b7d7;
+    cursor: 'not-allowed';
+}
 .start {
     background-color: green;
-}
-.play {
-    background-color: blue;
 }
 .stop {
     background-color: yellow;
