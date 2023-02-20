@@ -11,6 +11,9 @@ const locals = (() => {
         if(data.buffer) {
             locals.grid = new Int8Array(data.buffer);
             locals.methods.render();
+        } else if(data.stopped) {
+            locals.grid = new Int8Array(locals.cols * locals.rows);
+            locals.methods.render();
         }
     });
     return {
@@ -60,15 +63,13 @@ const locals = (() => {
             },
             stop() {
                 started = false; isPause = true;
+                worker.postMessage({stop: true});
                 startButton.disabled = true;
                 startButton.style.cursor = 'not-allowed';
                 stopButton.disabled = true;
                 stopButton.style.cursor = 'not-allowed';
                 invertButton.disabled = true;
                 invertButton.style.cursor = 'not-allowed';
-                worker.postMessage({stop: true});
-                locals.grid = new Int8Array(0);
-                locals.methods.render();
                 setTimeout(() => {
                     startButton.innerHTML = 'Start';
                     startButton.disabled = false;

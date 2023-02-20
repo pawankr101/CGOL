@@ -4,7 +4,7 @@ const locals = {
     cols: 0,
     rows: 0,
     started: false,
-    gridBuffer: new Int8Array(),
+    gridBuffer: new Int8Array(0),
     grid: [[0]],
     setGridIntBufferVal(col=0, row=0, val=0) {
         locals.gridBuffer[(col*locals.rows) + row] = val;
@@ -75,6 +75,7 @@ onmessage = ({data}) => {
             locals.cols = locals.rows = 0;
             locals.gridBuffer = null;
             locals.grid = null;
+            postMessage({stopped: true});
         }, 0);
     }
     else if(data.cols && data.rows) {
