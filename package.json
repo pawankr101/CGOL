@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "http-server ./src/"
+    "start": "node bin/dev-server.js"
   },
   "repository": {
     "type": "git",
@@ -23,6 +23,6 @@
   },
   "homepage": "https://github.com/pawankr101/COGL#readme",
   "devDependencies": {
-    "http-server": "^14.1.1"
+    "@types/node": "^20.4.1"
   }
 }
