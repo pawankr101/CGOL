@@ -5,7 +5,7 @@ const { extname, resolve } = require('path');
 const CONFIG = {
     host: 'localhost',
     port: 3000,
-    src: resolve(__dirname, './src'),
+    src: resolve(__dirname, '..', 'src'),
     mimeTypes: {
         '.html': 'text/html',
         '.js': 'text/javascript',
@@ -34,6 +34,7 @@ function startDevServer() {
         const _path = (request.url==='/'? 'index.html' : (request.url[0]==='/' ? request.url.slice(1) : request.url));
         response.setHeader('content-type', CONFIG.mimeTypes[extname(_path)]||'text/plain' + ';charset=utf-8');
         createReadStream(resolve(CONFIG.src, _path)).on('error', (e) => {
+            console.log(e);
             response.setHeader('content-type', CONFIG.mimeTypes['.json']);
             response.statusCode = 404;
             response.end();

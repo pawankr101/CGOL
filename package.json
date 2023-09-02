@@ -1,10 +1,10 @@
 {
   "name": "cgol",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Convway's Game Of Life",
+  "main": "./bin/dev-server.js",
   "scripts": {
-    "start": "node bin/dev-server.js"
+    "start": "node ./bin/dev-server.js"
   },
   "repository": {
     "type": "git",
