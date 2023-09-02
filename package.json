@@ -6,10 +6,17 @@
   "scripts": {
     "start": "node ./bin/dev-server.js"
   },
+  "devDependencies": {
+    "@types/node": "^20.4.1"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/pawankr101/CGOL.git"
   },
+  "bugs": {
+    "url": "https://github.com/pawankr101/CGOL/issues"
+  },
+  "homepage": "https://github.com/pawankr101/CGOL#readme",
   "keywords": [
     "Conwey's",
     "game",
@@ -17,12 +24,5 @@
     "life"
   ],
   "author": "Akshay Kumar",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/pawankr101/CGOL/issues"
-  },
-  "homepage": "https://github.com/pawankr101/CGOL#readme",
-  "devDependencies": {
-    "@types/node": "^20.4.1"
-  }
+  "license": "ISC"
 }
