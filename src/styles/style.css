@@ -32,14 +32,14 @@
     width: 60px;
     cursor: pointer;
 }
-.invert {
+.mode-btn {
     background-color: #41b7d7;
     cursor: 'not-allowed';
 }
-.start {
+.start-btn {
     background-color: green;
 }
-.stop {
+.stop-btn {
     background-color: yellow;
     cursor: 'not-allowed';
 }

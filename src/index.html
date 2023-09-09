@@ -6,24 +6,25 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="sharedArrayBuffer" description="using cross-origin-isolation in the web browser">
         <meta name="referrer" content="same-origin">
-        <link rel="shortcut icon" href="./gol-glider.png" type="image/png">
-        <link rel="stylesheet" href="./style.css">
-        <title>Conway Game Of Life</title>
-        <script async src="./index.js"></script>
+        <link rel="shortcut icon" href="./assets/gol-glider.png" type="image/png">
+        <link rel="stylesheet" href="./styles/style.css">
+        <title>Conway's Game of Life</title>
+        <script async src="./scripts/utils.js"></script>
+        <script async src="./scripts/index.js"></script>
     </head>
     <body>
         <section class="container">
             <div class="header">
                 <h1 class="title">Game Of Life</h1>
                 <div class="info">
-                    <button id="invert" disabled="true" class="invert" onclick="invert()">Invert</button>
-                    <button id="start" class="start" onclick="start()">Start</button>
-                    <button id="stop" disabled="true" class="stop" onclick="stop()">Stop</button>
+                    <button id="mode-btn" disabled="true" class="mode-btn" onclick="gameControlAction('mode')">Dark Mode</button>
+                    <button id="start-btn" class="start-btn" onclick="gameControlAction('start')">Start</button>
+                    <button id="stop-btn" disabled="true" class="stop-btn" onclick="gameControlAction('stop')">Stop</button>
                 </div>
             </div>
             <hr/>
             <div class="game">
-                <canvas id="canvas" class="canvas"></canvas>
+                <canvas id="gol-game" class="canvas"></canvas>
             </div>
         </section>
     </body>
