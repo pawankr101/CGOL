@@ -1,4 +1,4 @@
-
+/** @class `Game` */
 const Game = (function() {
     /**
      * @typedef {{mode: HTMLButtonElement, start: HTMLButtonElement, stop: HTMLButtonElement}} ControlButtons
@@ -10,15 +10,15 @@ const Game = (function() {
         if(buffer) renderFrame(buffer);
         else if(stopped) renderFrame();
     }
-    const worker = new WorkerProcess('worker', './worker.js', workerMessageHandler);
+    const worker = new WorkerProcess('worker', './scripts/worker.js', workerMessageHandler);
 
     // Controls
     const controlButtons = (() => {
         /** @type {ControlButtons} */
         let buttons = Object.create(null);
-        let bts =['mode'|'start'|'stop'], len= bts.length, i;
+        let bts =['mode','start','stop'], len= bts.length, i;
         for(i = 0; i<len; i++) {
-            controls[bts[i]] = document.getElementById(bts[i])
+            buttons[bts[i]] = document.getElementById(bts[i]+'-btn')
         }
         return buttons;
     })();
@@ -27,9 +27,9 @@ const Game = (function() {
      * @param {boolean} disable
      */
     const enableDisableButton = (button, disable) => {
-        let button = controlButtons[button];
+        button = controlButtons[button];
         if(button) {
-            button.disabled = disable;
+            button.disabled = disable || false;
             button.style.cursor = disable ? 'not-allowed' : 'pointer';
         }
     }
@@ -57,8 +57,8 @@ const Game = (function() {
      * @param {string} title
      */
     const setButtonTitle = (button, title) => {
-        let button = controlButtons[button];
-        if(button) button.innerText = title;
+        button = controlButtons[button];
+        if(button) button.innerHTML = title;
     }
 
     const gameStatus = {isStarted: false, isPause: false};
@@ -78,49 +78,37 @@ const Game = (function() {
         if(!gameStatus.isStarted) {
             gameStatus.isStarted = true; gameStatus.isPause = false;
             worker.send({rows: plane.rows, cols: plane.cols});
-            disableAll('start');
-            setTimeout(() => {
-                setButtonTitle('start', 'Pause');
-                enableAll('mode', 'start', 'stop');
-            }, 100);
-        } else if(!gameStatus.isPause){
-            gameStatus.isPause = true;
-            disableAll('start');
-            setTimeout(() => {
-                setButtonTitle('start', 'Start');
-                enableAll('start');
-            }, 100);
+            setButtonTitle('start', 'Pause');
+            enableAll('mode', 'start', 'stop');
         } else {
-            gameStatus.isPause = false;
-            worker.send({next: true});
-            disableAll('start');
-            setTimeout(() => {
+            if(!gameStatus.isPause){
+                gameStatus.isPause = true;
+                setButtonTitle('start', 'Start');
+            } else {
+                gameStatus.isPause = false;
+                worker.send({next: true});
                 setButtonTitle('start', 'Pause');
-                enableAll('start');
-            }, 100);
+            }
         }
     }
 
     Game.stop = function() {
         gameStatus.isStarted = false; gameStatus.isPause = false;
         worker.send({stop: true});
-        disableAll('mode', 'start', 'stop');
-        setTimeout(() => {
-            setButtonTitle('start', 'Start');
-            enableAll('start');
-        }, 100);
+        disableAll('mode', 'stop');
+        setButtonTitle('start', 'Start');
+        enableAll('start');
     }
     Game.changeMode = function() {
-        let darkMode = plane.changeMode();
+        setButtonTitle('mode', plane.changeMode() ? 'Light Mode' : 'Dark Mode');
         worker.send({next: true});
-        setButtonTitle('mode', darkMode ? 'Dark Mode' : 'light Mode')
     }
 
     return Game;
 })();
 
 
-/** @param {'mode'|'start'|'pause'|'stop'} action */
+/** @param {'mode'|'start'|'stop'} action */
 function gameControlAction(action) {
     if(action==='start') Game.start();
     else if(action==='stop') Game.stop();
