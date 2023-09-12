@@ -174,7 +174,7 @@ const gliderGun = [
     [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 ];
 
-addEventListener('message', ({data}) => {
+worker.addEventListener('message', ({data}) => {
     if(data.next) {
         generation.sendSnapshotData();
     }
