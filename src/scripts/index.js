@@ -4,20 +4,25 @@ const Game = (function() {
      * @typedef {{mode: HTMLButtonElement, start: HTMLButtonElement, stop: HTMLButtonElement}} ControlButtons
     */
 
+    /** @type {CanvasPlane} */
     const plane = new CanvasPlane('gol-game', 2);
+
     /** @param {{buffer: ArrayBuffer, stopped: boolean}} */
-    const workerMessageHandler = ({buffer, stopped}) => {
-        if(buffer) renderFrame(buffer);
-        else if(stopped) renderFrame();
+    const workerMessageHandler = (data) => {
+        if(data.buffer) renderFrame(data.buffer);
+        else if(data.stopped) renderFrame();
     }
+
+    /** @type {WorkerProcess} */
     const worker = new WorkerProcess('worker', './scripts/worker.js', workerMessageHandler);
 
     // Controls
+    /** @type {ControlButtons} */
     const controlButtons = (() => {
         /** @type {ControlButtons} */
         let buttons = Object.create(null);
         let bts =['mode','start','stop'], len= bts.length, i;
-        for(i = 0; i<len; i++) {
+        for(i=0; i<len; i++) {
             buttons[bts[i]] = document.getElementById(bts[i]+'-btn')
         }
         return buttons;
@@ -66,7 +71,9 @@ const Game = (function() {
     /** @param {ArrayBuffer} [buffer] */
     const renderFrame = function(buffer) {
         plane.draw(new CanvasPlaneData(plane.rows, plane.cols, buffer));
-        if(gameStatus.isStarted && !gameStatus.isPause) worker.send({next: true});
+        if(gameStatus.isStarted && !gameStatus.isPause) {
+            worker.send({next: true});
+        }
     }
 
     /** @constructor */
@@ -78,16 +85,22 @@ const Game = (function() {
         if(!gameStatus.isStarted) {
             gameStatus.isStarted = true; gameStatus.isPause = false;
             worker.send({rows: plane.rows, cols: plane.cols});
-            setButtonTitle('start', 'Pause');
-            enableAll('mode', 'start', 'stop');
+            setTimeout(() => {
+                setButtonTitle('start', 'Pause');
+                enableAll('mode', 'start', 'stop');
+            }, 10);
         } else {
             if(!gameStatus.isPause){
                 gameStatus.isPause = true;
-                setButtonTitle('start', 'Start');
+                setTimeout(() => {
+                    setButtonTitle('start', 'Start');
+                }, 10);
             } else {
                 gameStatus.isPause = false;
                 worker.send({next: true});
-                setButtonTitle('start', 'Pause');
+                setTimeout(() => {
+                    setButtonTitle('start', 'Pause');
+                }, 10);
             }
         }
     }
@@ -96,14 +109,16 @@ const Game = (function() {
         gameStatus.isStarted = false; gameStatus.isPause = false;
         worker.send({stop: true});
         disableAll('mode', 'stop');
-        setButtonTitle('start', 'Start');
-        enableAll('start');
+        setTimeout(() => {
+            setButtonTitle('start', 'Start');
+            enableAll('start');
+        }, 10);
     }
+
     Game.changeMode = function() {
         setButtonTitle('mode', plane.changeMode() ? 'Light Mode' : 'Dark Mode');
         worker.send({next: true});
     }
-
     return Game;
 })();
 

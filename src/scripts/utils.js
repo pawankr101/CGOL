@@ -11,7 +11,7 @@ const WorkerProcess = (function(){
         if(!new.target) throw new Error('Use `new` keyword to create Object of this class.');
         
         /** @type {Worker} */
-        this.worker = new Worker(filepath, {name: worker_name, credentials: 'same-origin', type: 'module'});
+        this.worker = new Worker(filepath, {name: worker_name, type: 'module'});
         this.worker.addEventListener('error', (event) => {
             console.error(event.error);
         });
@@ -28,8 +28,8 @@ const WorkerProcess = (function(){
 
 /** @class `CanvasPlaneData` */
 const CanvasPlaneData = (function(){
-    /** 
-     * @constructor 
+    /**
+     * @constructor
      * @param {number} rows 
      * @param {number} cols 
      * @param {ArrayBuffer} [buffer]

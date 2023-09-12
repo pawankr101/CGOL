@@ -1,86 +1,188 @@
-if(!crossOriginIsolated) self.SharedArrayBuffer = ArrayBuffer;
-let sharedBuffer = new SharedArrayBuffer(0);
-const locals = {
-    cols: 0,
-    rows: 0,
-    started: false,
-    gridBuffer: new Int8Array(0),
-    grid: [[0]],
-    setGridIntBufferVal(col=0, row=0, val=0) {
-        locals.gridBuffer[(col*locals.rows) + row] = val;
-    },
-    initGrid() {
-        locals.started = true;
-        sharedBuffer = new SharedArrayBuffer(locals.cols * locals.rows);
-        locals.gridBuffer = new Int8Array(sharedBuffer);
-        locals.grid=[];
-        for(let c=0,r,col; c<locals.cols; c++) {
-            for (col=[],r=0; r<locals.rows; r++) {
-                col[r] = Math.round(Math.random());
-                locals.setGridIntBufferVal(c, r, col[r]);
-            }
-            locals.grid[c]=col
-        }
-        postMessage({buffer: sharedBuffer});
-        setTimeout(locals.updateGrid(), 0);
-    },
-    nextCellValue(col=0, row=0) {
-        let nc = [0,0], oldValue=locals.grid[col][row];
-        for(let i=col-1, gl=locals.grid.length,gil,j,brk; i<=col+1; i++) {
-            if(i>=0 && i<gl) {
-                brk = false;
-                for(j=row-1, gil=locals.grid[i].length; j<=row+1; j++) {
-                    if(j>=0 && j<gil) {
-                        if(!(i==col && j==row)) {
-                            nc[locals.grid[i][j]]++;
-                            if(nc[1]>3) {
-                                brk = true;
-                                break;
-                            }
-                        }
+
+let worker = self;
+
+/** @class `GenerationData` */
+const GenerationData = (function(){
+    /**
+     * @constructor
+     * @param {number} rows 
+     * @param {number} cols 
+     * @param {ArrayBuffer} [buffer]
+     * @returns {GenerationData}
+     */
+    function GenerationData(rows, cols) {
+        if(!new.target) throw new Error('Use `new` keyword to create Object of this class.');
+
+        /** @type {number} */
+        this.rows = rows;
+
+        /** @type {number} */
+        this.cols = cols;
+
+        /** @type {ArrayBuffer} */
+        this.buffer =  new ArrayBuffer(rows * cols);
+
+        /** @type {Uint8Array} */
+        this.data = new Uint8Array(this.buffer);
+    }
+
+    /** 
+     * @param {number} rowIndex
+     * @param {number[]} values
+     */
+    GenerationData.prototype.setRow = function(rowIndex, values) {
+        return this.data.set(values, (rowIndex * this.cols));
+    }
+    return GenerationData;
+})();
+
+/**
+ * @class `Generation`
+ * @typedef {typeof GenerationData} GenerationData
+ */
+const Generation = (function() {
+
+    /**
+     * @param {number} row 
+     * @param {number} col 
+     * @param {number} totalRows 
+     * @param {number} totalCols 
+     * @param {(0|1)[][]} data 
+     * @returns {0|1}
+     */
+    const nextGenValue = function(row, col, totalRows, totalCols, data) {
+        let nc=0, value=data[row][col];
+        for(let i=((row>0)?(row-1):0), j, jInit=((col>0)?(col-1):0), brk; (i<=(row+1) && i<totalRows); i++) {
+            brk = false;
+            for(j=jInit;(i<=(col+1) && i<totalCols); j++){
+                if(i!==row || j!==col) {
+                    if(data[i][j]) nc++;
+                    if(nc>3) {
+                        brk=true;
+                        break;
                     }
                 }
-                if(brk) break;
             }
+            if(brk) break;
         }
-        return oldValue ? ((nc[1]<2 || nc[1]>3) ? 0 : oldValue) : ((nc[1]===3) ? 1 : oldValue);
-    },
-    updateGrid() {
-        let grid=[];
-        for(let c=0,r,col; c<locals.cols; c++) {
-            for (col=[],r=0; r<locals.rows; r++) {
-                col[r] = locals.nextCellValue(c, r);
-            }
-            grid[c]=col;
-        }
-        locals.grid = grid;
-    },
-    sendGrid() {
-        for(let c=0,r; c<locals.cols; c++) {
-            for (r=0; r<locals.rows; r++) {
-                locals.setGridIntBufferVal(c, r, locals.grid[c][r]);
-            }
-        }
-        postMessage({buffer: sharedBuffer});
-        setTimeout(locals.updateGrid(), 0);
+        return value ? ((nc<2 || nc>3) ? 0 : value) : ((nc===3) ? 1 : value);
     }
-}
 
-onmessage = ({data}) => {
-    if(data.next && locals.started) locals.sendGrid();
-    else if(data.stop) {
-        locals.started = false;
+    /**
+     * @param {number} rows 
+     * @param {number} cols 
+     * @param {(0|1)[][]} snapshot 
+     * @returns {(0|1)[][]}
+     */
+    const getNextGenSnapshot = function(rows, cols, snapshot) {
+        /** @type {(0|1)[][]} */
+        const ns = new Array(rows);
+        for (let r=0, c, row; r<rows; r++) {
+            for(c=0, row=new Array(cols); c<cols; c++) {
+                row[c] = nextGenValue(r, c, rows, cols, snapshot);
+            }
+            ns[r]=row;
+        }
+        return ns;
+    }
+
+    /** @constructor */
+    function Generation() {}
+    
+    /**
+     * @param {number} rows 
+     * @param {number} cols
+     * @param {(0|1)[][]} [initialState] 
+     */
+    Generation.prototype.initialize = function(rows, cols, initialState) {
+
+        /** @type {GenerationData} */
+        this.data = new GenerationData(rows, cols);
+
+        /** @type {(0|1)[][]} */
+        this.snapshot = new Array(rows);
+
+        for(let r=0,c,row; r<rows; r++) {
+            for(row=[],c=0; c<cols; c++) {
+                row[c] = initialState ? ((initialState[r] && initialState[r][c]) ? initialState[r][c] : 0) : Math.round(Math.random());
+            }
+            this.snapshot[r] = row;
+        }
+        this.sendSnapshotData();
+    }
+
+    Generation.prototype.sendSnapshotData = function() {
+        if(this.data) {
+            let rows = this.data.rows, cols = this.data.cols;
+            for(let r = 0; r<rows; r++) {
+                this.data.setRow(r, this.snapshot[r]);
+            }
+            worker.postMessage({buffer: this.data.buffer});
+            setTimeout(() => { this.snapshot = getNextGenSnapshot(rows, cols, this.snapshot); }, 0);
+        }
+    }
+
+    Generation.prototype.reset = function() {
         setTimeout(() => {
-            sharedBuffer = null;
-            locals.cols = locals.rows = 0;
-            locals.gridBuffer = null;
-            locals.grid = null;
-            postMessage({stopped: true});
+            this.data=null;
+            this.snapshot=null;
         }, 0);
     }
-    else if(data.cols && data.rows) {
-        locals.cols = data.cols;
-        locals.rows = data.rows;
-        locals.initGrid();
+    return Generation;
+})();
+
+const generation=new Generation();
+const gliderGun = [
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,1,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+];
+
+addEventListener('message', ({data}) => {
+    if(data.next) {
+        generation.sendSnapshotData();
     }
-}
+    else if(data.stop) {
+        generation.reset();
+        worker.postMessage({stopped: true});
+    }
+    else if(data.cols && data.rows) {
+        generation.initialize(data.rows, data.cols);
+    }
+});
