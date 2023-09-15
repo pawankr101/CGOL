@@ -193,7 +193,10 @@ const gliderGun = [
     [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 ];
 
-worker.addEventListener('message', /** @param { {data: {rows?: number, cols?: number, next?: boolean, stop?: boolean}} } */({data}) => {
+/** 
+ * @typedef {MessageEvent<{rows?: number, cols?: number, next?: boolean, stop?: boolean}>} WorkerMessageEvent
+ */
+worker.addEventListener('message', /** @param {WorkerMessageEvent} */({data}) => {
     if(data.next) {
         generation.sendSnapshotData();
     }
