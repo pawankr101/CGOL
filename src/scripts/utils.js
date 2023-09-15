@@ -1,10 +1,16 @@
-/** @class `WorkerProcess` */
+/**
+ * @class `WorkerProcess`
+ * @this WorkerProcess
+ * @typedef { {worker: Worker, send: (data: object)=>void} } WorkerProcess
+ * @typedef { new (worker_name: string, filepath: string | URL, messageHandler: (data: any) => void) => WorkerProcess } WorkerProcessConstructor
+ * @type { WorkerProcessConstructor | WorkerProcess }
+ */
 const WorkerProcess = (function(){
     /**
-     * @constructor
+     * @constructor WorkerProcess
      * @param {string} worker_name Worker name
      * @param {string | URL} filepath 
-     * @param {(data: any)=> void} messageHandler 
+     * @param {(data: object)=>void} messageHandler 
      * @returns {WorkerProcess}
      */
     function WorkerProcess(worker_name, filepath, messageHandler) {
@@ -20,16 +26,26 @@ const WorkerProcess = (function(){
         });
     }
 
+    /**
+     * @method `send`
+     * @param {object} data 
+     */
     WorkerProcess.prototype.send = function(data) {
         this.worker.postMessage(data);
     }
     return WorkerProcess;
 })();
 
-/** @class `CanvasPlaneData` */
+/**
+ * @class `CanvasPlaneData`
+ * @this CanvasPlaneData
+ * @typedef { {rows: number, cols: number, data: Uint8Array, getValue: (row: number, col: number) => number} } CanvasPlaneData
+ * @typedef { new (rows: number, cols: number, buffer?: ArrayBuffer) => CanvasPlaneData } CanvasPlaneDataConstructor
+ * @type { CanvasPlaneDataConstructor | CanvasPlaneData }
+ */
 const CanvasPlaneData = (function(){
     /**
-     * @constructor
+     * @constructor `CanvasPlaneData`
      * @param {number} rows 
      * @param {number} cols 
      * @param {ArrayBuffer} [buffer]
@@ -48,14 +64,25 @@ const CanvasPlaneData = (function(){
         this.data = buffer ? new Uint8Array(buffer) : new Uint8Array(rows * cols);
     }
 
-    /** @returns {number} */
-    CanvasPlaneData.prototype.getValue = function(row=0, col=0) {
+    /**
+     * @method `getValue`
+     * @param {number} row 
+     * @param {number} col 
+     * @returns {number}
+     */
+    CanvasPlaneData.prototype.getValue = function(row, col) {
         return this.data[(row*this.cols) + col];
     }
     return CanvasPlaneData;
 })();
 
-/** @class `CanvasPlane` */
+/**
+ * @class `CanvasPlane`
+ * @this CanvasPlane
+ * @typedef { {rows: number, cols: number, resolution: number, draw: (data: CanvasPlaneData) => void, changeMode: () => boolean} } CanvasPlane
+ * @typedef { new (canvasElId: string, resolution: number) => CanvasPlane } CanvasPlaneConstructor
+ * @type { CanvasPlaneConstructor | CanvasPlane }
+ */
 const CanvasPlane = (function(){
 
     /** @type {HTMLCanvasElement} */
@@ -66,8 +93,12 @@ const CanvasPlane = (function(){
     /** @type {{resolution: number, cols: number, rows: number, darkMode: boolean} */
     const local = {resolution: 1, rows: 0, cols: 0, darkMode: false};
     
-    /** @param {number} row  @param {number} col  @param {number} value  */
-    const drawPixel = function(row=0, col=0, value=0) {
+    /**
+     * @param {number} row
+     * @param {number} col
+     * @param {number} value
+     */
+    const drawPixel = function(row, col, value) {
         context.beginPath();
         context.rect((col * local.resolution), (row * local.resolution), local.resolution, local.resolution);
         context.fillStyle = (local.darkMode ^ value) ? 'black': 'white';
@@ -75,9 +106,10 @@ const CanvasPlane = (function(){
     }
 
     /** 
-     * @constructor 
+     * @constructor `CanvasPlane`
      * @param {string} canvasElId 
      * @param {number} resolution 
+     * @returns {CanvasPlane}
      */
     function CanvasPlane(canvasElId, resolution) {
         if(!new.target) throw new Error('Use `new` keyword to create Object of this class.');
@@ -111,12 +143,3 @@ const CanvasPlane = (function(){
     }
     return CanvasPlane;
 })();
-
-/** @type {WorkerProcess} */
-window.WorkerProcess = WorkerProcess;
-
-/** @type {CanvasPlaneData} */
-window.CanvasPlaneData = CanvasPlaneData;
-
-/** @type {CanvasPlane} */
-window.CanvasPlane = CanvasPlane;

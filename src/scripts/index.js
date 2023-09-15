@@ -1,13 +1,10 @@
 /** @class `Game` */
 const Game = (function() {
-    /**
-     * @typedef {{mode: HTMLButtonElement, start: HTMLButtonElement, stop: HTMLButtonElement}} ControlButtons
-    */
 
     /** @type {CanvasPlane} */
     const plane = new CanvasPlane('gol-game', 2);
 
-    /** @param {{buffer: ArrayBuffer, stopped: boolean}} */
+    /** @param {{buffer: ArrayBuffer, stopped: boolean}} data */
     const workerMessageHandler = (data) => {
         if(data.buffer) renderFrame(data.buffer);
         else if(data.stopped) renderFrame();
@@ -17,7 +14,10 @@ const Game = (function() {
     const worker = new WorkerProcess('worker', './scripts/worker.js', workerMessageHandler);
 
     // Controls
-    /** @type {ControlButtons} */
+    /**
+     * @typedef {{mode: HTMLButtonElement, start: HTMLButtonElement, stop: HTMLButtonElement}} ControlButtons
+     * @type {ControlButtons}
+     */
     const controlButtons = (() => {
         /** @type {ControlButtons} */
         let buttons = Object.create(null);
@@ -82,6 +82,14 @@ const Game = (function() {
     }
 
     Game.start = function() {
+        if(gameStatus.isStarted) {
+            if(gameStatus.isPause) {
+                gameStatus.isPause = false;
+                setTimeout(() => { setButtonTitle('start', 'Pause'); }, 0);
+                worker.send({next: true});
+            }
+        }
+
         if(!gameStatus.isStarted) {
             gameStatus.isStarted = true; gameStatus.isPause = false;
             worker.send({rows: plane.rows, cols: plane.cols});
