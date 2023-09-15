@@ -1,8 +1,8 @@
 /**
  * @class `WorkerProcess`
  * @typedef { {worker: Worker, send: (data: object)=>void} } WorkerProcess
- * @typedef { new (worker_name: string, filepath: string | URL, messageHandler: (data: any) => void) => WorkerProcess } WorkerProcessConstructor
- * @type { WorkerProcessConstructor | WorkerProcess }
+ * @typedef { { new (worker_name: string, filepath: string | URL, messageHandler: (data: any) => void) => WorkerProcess } } WorkerProcessConstructor
+ * @type { WorkerProcessConstructor }
  */
 const WorkerProcess = (function(){
     /**
@@ -38,8 +38,8 @@ const WorkerProcess = (function(){
 /**
  * @class `CanvasPlaneData`
  * @typedef { {rows: number, cols: number, data: Uint8Array, getValue: (row: number, col: number) => number} } CanvasPlaneData
- * @typedef { new (rows: number, cols: number, buffer?: ArrayBuffer) => CanvasPlaneData } CanvasPlaneDataConstructor
- * @type { CanvasPlaneDataConstructor | CanvasPlaneData }
+ * @typedef { { new (rows: number, cols: number, buffer?: ArrayBuffer) => CanvasPlaneData } } CanvasPlaneDataConstructor
+ * @type { CanvasPlaneDataConstructor }
  */
 const CanvasPlaneData = (function(){
     /**
@@ -77,8 +77,8 @@ const CanvasPlaneData = (function(){
 /**
  * @class `CanvasPlane`
  * @typedef { {rows: number, cols: number, resolution: number, draw: (data: CanvasPlaneData) => void, changeMode: () => boolean} } CanvasPlane
- * @typedef { new (canvasElId: string, resolution: number) => CanvasPlane } CanvasPlaneConstructor
- * @type { CanvasPlaneConstructor | CanvasPlane }
+ * @typedef { { new (canvasElId: string, resolution: number) => CanvasPlane } } CanvasPlaneConstructor
+ * @type { CanvasPlaneConstructor }
  */
 const CanvasPlane = (function(){
 

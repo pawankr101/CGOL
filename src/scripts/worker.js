@@ -1,7 +1,12 @@
 
 let worker = self;
 
-/** @class `GenerationData` */
+/**
+ * @class `GenerationData`
+ * @typedef { { rows: number, cols: number, buffer: ArrayBuffer, data: Uint8Array, setRow: (rowIndex: number, values: number[]) => void } } GenerationData
+ * @typedef { { new (rows: number, cols: number) => GenerationData } } GenerationDataConstructor
+ * @type { GenerationDataConstructor }
+ */
 const GenerationData = (function(){
     /**
      * @constructor
@@ -31,14 +36,16 @@ const GenerationData = (function(){
      * @param {number[]} values
      */
     GenerationData.prototype.setRow = function(rowIndex, values) {
-        return this.data.set(values, (rowIndex * this.cols));
+        this.data.set(values, (rowIndex * this.cols));
     }
     return GenerationData;
 })();
 
 /**
  * @class `Generation`
- * @typedef {typeof GenerationData} GenerationData
+ * @typedef { { data: GenerationData, snapshot: (0|1)[][], initialize(rows: number, cols: number, initialState?: (0 | 1)[][])=>void, sendSnapshotData()=>void, reset()=>void } } Generation
+ * @typedef { { new () => Generation, init: (rows: number, cols: number, initialState?: (0 | 1)[][]) => Generation } } GenerationConstructor
+ * @type { GenerationConstructor }
  */
 const Generation = (function() {
 
@@ -86,8 +93,20 @@ const Generation = (function() {
         return ns;
     }
 
-    /** @constructor */
+    /** @constructor @returns {Generation} */
     function Generation() {}
+
+    /**
+     * @param {number} rows 
+     * @param {number} cols
+     * @param {(0|1)[][]} [initialState]
+     * @returns {Generation}
+     */
+    Generation.init = function(rows, cols, initialState) {
+        const generation=new Generation();
+        generation.initialize(rows, cols, initialState);
+        return generation;
+    }
     
     /**
      * @param {number} rows 
@@ -131,7 +150,7 @@ const Generation = (function() {
     return Generation;
 })();
 
-const generation=new Generation();
+const generation = new Generation();
 const gliderGun = [
     [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
     [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
@@ -174,7 +193,7 @@ const gliderGun = [
     [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 ];
 
-worker.addEventListener('message', ({data}) => {
+worker.addEventListener('message', /** @param { {data: {rows?: number, cols?: number, next?: boolean, stop?: boolean}} } */({data}) => {
     if(data.next) {
         generation.sendSnapshotData();
     }
