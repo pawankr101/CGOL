@@ -85,42 +85,31 @@ const Game = (function() {
         if(gameStatus.isStarted) {
             if(gameStatus.isPause) {
                 gameStatus.isPause = false;
-                setTimeout(() => { setButtonTitle('start', 'Pause'); }, 0);
+                setTimeout(() => setButtonTitle('start', 'Pause'), 0);
                 worker.send({next: true});
+                return; 
             }
+            gameStatus.isPause = true;
+            setTimeout(() => setButtonTitle('start', 'Start'), 0);
+            return;
         }
-
-        if(!gameStatus.isStarted) {
-            gameStatus.isStarted = true; gameStatus.isPause = false;
-            worker.send({rows: plane.rows, cols: plane.cols});
-            setTimeout(() => {
-                setButtonTitle('start', 'Pause');
-                enableAll('mode', 'start', 'stop');
-            }, 10);
-        } else {
-            if(!gameStatus.isPause){
-                gameStatus.isPause = true;
-                setTimeout(() => {
-                    setButtonTitle('start', 'Start');
-                }, 10);
-            } else {
-                gameStatus.isPause = false;
-                worker.send({next: true});
-                setTimeout(() => {
-                    setButtonTitle('start', 'Pause');
-                }, 10);
-            }
-        }
+        gameStatus.isStarted = true;
+        gameStatus.isPause = false;
+        worker.send({rows: plane.rows, cols: plane.cols});
+        setTimeout(() => {
+            setButtonTitle('start', 'Pause');
+            enableAll('mode', 'start', 'stop');
+        }, 0);
     }
 
     Game.stop = function() {
         gameStatus.isStarted = false; gameStatus.isPause = false;
+        disableAll('mode', 'start', 'stop');
         worker.send({stop: true});
-        disableAll('mode', 'stop');
         setTimeout(() => {
             setButtonTitle('start', 'Start');
             enableAll('start');
-        }, 10);
+        }, 0);
     }
 
     Game.changeMode = function() {
