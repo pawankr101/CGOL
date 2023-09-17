@@ -176,9 +176,7 @@ const gliderGun = [
  * @typedef {MessageEvent<{rows?: number, cols?: number, next?: boolean, stop?: boolean}>} WorkerMessageEvent
  */
 worker.addEventListener('message', /** @param {WorkerMessageEvent} */({data}) => {
-    if(data.next) {
-        generation.sendSnapshotData();
-    }
+    if(data.next) generation.sendSnapshotData();
     else if(data.stop) {
         generation.reset();
         worker.postMessage({stopped: true});
