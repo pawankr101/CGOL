@@ -60,22 +60,17 @@ const Generation = (function() {
     const nextGenValue = function(row, col, totalRows, totalCols, data) {
         const iMin = (row>0) ? (row-1) : 0, iMax = (row < totalRows-1) ? (row+1) : row;
         const jMin = (col>0) ? (col-1) : 0, jMax = (col < totalCols-1) ? (col+1) : col;
-        const value=data[row][col];
-        let nc=0;
-        for(let i=iMin, j, brk; i<=iMax; i++) {
-            brk = false;
+        const value = data[row][col];
+        let neighbors = 0;
+        for(let i=iMin, j; i<=iMax; i++) {
             for(j=jMin; j<=jMax; j++){
-                if(i!==row || j!==col) {
-                    if(data[i][j]) nc++;
-                    if(nc>3) {
-                        brk=true;
-                        break;
-                    }
+                if(i!=row || j!=col) {
+                    neighbors += data[i][j];
+                    if(neighbors>3) return 0;
                 }
             }
-            if(brk) break;
         }
-        return value ? ((nc<2 || nc>3) ? 0 : value) : ((nc===3) ? 1 : value);
+        return (neighbors===3) ? 1 : ((neighbors===2) ? value : 0);
     }
 
     /**
@@ -84,7 +79,7 @@ const Generation = (function() {
      * @param {(0|1)[][]} snapshot 
      * @returns {(0|1)[][]}
      */
-    const getNextGenSnapshot = function(rows, cols, snapshot) {
+    const getNextGenSnapshot = function(rows, cols, snapshot) { // have to solve it recursively
         /** @type {(0|1)[][]} */
         const ns = new Array(rows);
         for (let r=0, c, row; r<rows; r++) {
