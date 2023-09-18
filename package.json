@@ -6,9 +6,6 @@
   "scripts": {
     "start": "node ./bin/dev-server.js"
   },
-  "devDependencies": {
-    "@types/node": "^20.4.1"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/pawankr101/CGOL.git"
