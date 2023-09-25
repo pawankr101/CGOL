@@ -70,10 +70,12 @@ const Game = (function() {
     
     /** @param {ArrayBuffer} [buffer] */
     const renderFrame = function(buffer) {
-        plane.draw(new CanvasPlaneData(plane.rows, plane.cols, buffer));
-        if(gameStatus.isStarted && !gameStatus.isPause) {
-            worker.send({next: true});
-        }
+        setTimeout(() => {
+            plane.draw(new CanvasPlaneData(plane.rows, plane.cols, buffer));
+            if(gameStatus.isStarted && !gameStatus.isPause) {
+                worker.send({next: true});
+            }
+        }, 0);
     }
 
     /** @constructor */
@@ -85,31 +87,31 @@ const Game = (function() {
         if(gameStatus.isStarted) {
             if(gameStatus.isPause) {
                 gameStatus.isPause = false;
-                setTimeout(() => setButtonTitle('start', 'Pause'), 0);
+                queueMicrotask(() => setButtonTitle('start', 'Pause'));
                 worker.send({next: true});
                 return; 
             }
             gameStatus.isPause = true;
-            setTimeout(() => setButtonTitle('start', 'Start'), 0);
+            queueMicrotask(() => setButtonTitle('start', 'Start'));
             return;
         }
         gameStatus.isStarted = true;
         gameStatus.isPause = false;
         worker.send({rows: plane.rows, cols: plane.cols});
-        setTimeout(() => {
+        queueMicrotask(() => {
             setButtonTitle('start', 'Pause');
             enableAll('mode', 'start', 'stop');
-        }, 0);
+        });
     }
 
     Game.stop = function() {
         gameStatus.isStarted = false; gameStatus.isPause = false;
         disableAll('mode', 'start', 'stop');
         worker.send({stop: true});
-        setTimeout(() => {
+        queueMicrotask(() => {
             setButtonTitle('start', 'Start');
             enableAll('start');
-        }, 0);
+        });
     }
 
     Game.changeMode = function() {

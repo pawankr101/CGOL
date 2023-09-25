@@ -87,8 +87,24 @@ const CanvasPlane = (function(){
     /** @type {CanvasRenderingContext2D} */
     let context;
 
-    /** @type {{resolution: number, cols: number, rows: number, darkMode: boolean} */
-    const local = {resolution: 1, rows: 0, cols: 0, darkMode: false};
+    /** @type {{resolution: number, cols: number, rows: number, darkMode: boolean, planeDataArray: number[][]} */
+    const local = {resolution: 1, rows: 0, cols: 0, darkMode: false, planeDataArray: null};
+
+    /**
+     * @param {number} rows 
+     * @param {number} cols 
+     * @returns {number[][]}
+     */
+    const buildEmptyArray = function(rows, cols) {
+        const array = new Array(rows);
+        for(let r=0, c, row; r<rows; r++) {
+            for(c=0, row=new Array(cols); c<cols; c++) {
+                row[c] = 0;
+            }
+            array[r] = row;
+        }
+        return array;
+    }
     
     /**
      * @param {number} row
@@ -124,19 +140,30 @@ const CanvasPlane = (function(){
 
         /** @type {number} */
         this.cols = local.cols = Math.floor(canvas.width/resolution);
+
+        local.planeDataArray = buildEmptyArray(local.rows, local.cols);
     }
 
     /** @param {CanvasPlaneData} data */
     CanvasPlane.prototype.draw = function(data) {
-        for(let r=0,c,rl=local.rows,cl=local.cols; r<rl; r++) {
+        for(let r=0,c, v,rl=local.rows,cl=local.cols; r<rl; r++) {
             for(c=0; c<cl; c++) {
-                drawPixel(r, c, data.getValue(r, c));
+                if(local.planeDataArray[r][c] !== (v = data.getValue(r, c))) {
+                    local.planeDataArray[r][c] = v;
+                    drawPixel(r, c, v);
+                }
             }
         }
     }
 
     CanvasPlane.prototype.changeMode = function() {
-        return (local.darkMode = !local.darkMode);
+        local.darkMode = !local.darkMode;
+        for(let r=0,c, rl=local.rows,cl=local.cols; r<rl; r++) {
+            for(c=0; c<cl; c++) {
+                drawPixel(r, c, local.planeDataArray[r][c]);
+            }
+        }
+        return local.darkMode;
     }
     return CanvasPlane;
 })();
