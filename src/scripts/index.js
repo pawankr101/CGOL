@@ -71,11 +71,9 @@ const Game = (function() {
     /** @param {ArrayBuffer} [buffer] */
     const renderFrame = function(buffer) {
         plane.draw(new CanvasPlaneData(plane.rows, plane.cols, buffer));
-        gameStatus.next = setTimeout(() => {
-            if(gameStatus.isStarted && !gameStatus.isPause) {
-                worker.send({next: true});
-            }
-        }, 0);
+        if(gameStatus.isStarted && !gameStatus.isPause) {
+            gameStatus.nextRenderTimeout = setTimeout(() => { worker.send({stop: true});}, 0);
+        }
     }
 
     /** @constructor */
@@ -87,7 +85,7 @@ const Game = (function() {
         if(gameStatus.isStarted) {
             if(gameStatus.isPause) {
                 gameStatus.isPause = false;
-                gameStatus.nextRenderTimeout = setTimeout(() => { worker.send({next: true}); });
+                gameStatus.nextRenderTimeout = setTimeout(() => { worker.send({stop: true});}, 0);
                 queueMicrotask(() => setButtonTitle('start', 'Pause'));
                 return; 
             }
@@ -109,6 +107,8 @@ const Game = (function() {
         gameStatus.isStarted = false; gameStatus.isPause = false;
         disableAll('mode', 'start', 'stop');
         worker.send({stop: true});
+        clearTimeout(gameStatus.nextRenderTimeout);
+        gameStatus.nextRenderTimeout = setTimeout(() => { worker.send({stop: true});}, 0);
         queueMicrotask(() => {
             setButtonTitle('start', 'Start');
             enableAll('start');
@@ -117,7 +117,8 @@ const Game = (function() {
 
     Game.changeMode = function() {
         setButtonTitle('mode', plane.changeMode() ? 'Light Mode' : 'Dark Mode');
-        worker.send({next: true});
+        clearTimeout(gameStatus.nextRenderTimeout);
+        gameStatus.nextRenderTimeout = setTimeout(() => { worker.send({stop: true});}, 0);
     }
     return Game;
 })();
