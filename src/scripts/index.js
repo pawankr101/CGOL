@@ -66,12 +66,12 @@ const Game = (function() {
         if(button) button.innerHTML = title;
     }
 
-    const gameStatus = {isStarted: false, isPause: false};
+    const gameStatus = {isStarted: false, isPause: false, nextRenderTimeout: 0};
     
     /** @param {ArrayBuffer} [buffer] */
     const renderFrame = function(buffer) {
-        setTimeout(() => {
-            plane.draw(new CanvasPlaneData(plane.rows, plane.cols, buffer));
+        plane.draw(new CanvasPlaneData(plane.rows, plane.cols, buffer));
+        gameStatus.next = setTimeout(() => {
             if(gameStatus.isStarted && !gameStatus.isPause) {
                 worker.send({next: true});
             }
@@ -87,11 +87,12 @@ const Game = (function() {
         if(gameStatus.isStarted) {
             if(gameStatus.isPause) {
                 gameStatus.isPause = false;
+                gameStatus.nextRenderTimeout = setTimeout(() => { worker.send({next: true}); });
                 queueMicrotask(() => setButtonTitle('start', 'Pause'));
-                worker.send({next: true});
                 return; 
             }
             gameStatus.isPause = true;
+            clearTimeout(gameStatus.nextRenderTimeout);
             queueMicrotask(() => setButtonTitle('start', 'Start'));
             return;
         }
