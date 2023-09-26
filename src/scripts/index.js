@@ -72,7 +72,7 @@ const Game = (function() {
     const renderFrame = function(buffer) {
         plane.draw(new CanvasPlaneData(plane.rows, plane.cols, buffer));
         if(gameStatus.isStarted && !gameStatus.isPause) {
-            gameStatus.nextRenderTimeout = setTimeout(() => { worker.send({stop: true});}, 0);
+            gameStatus.nextRenderTimeout = setTimeout(() => { worker.send({next: true});}, 0);
         }
     }
 
@@ -85,7 +85,7 @@ const Game = (function() {
         if(gameStatus.isStarted) {
             if(gameStatus.isPause) {
                 gameStatus.isPause = false;
-                gameStatus.nextRenderTimeout = setTimeout(() => { worker.send({stop: true});}, 0);
+                gameStatus.nextRenderTimeout = setTimeout(() => { worker.send({next: true});}, 0);
                 queueMicrotask(() => setButtonTitle('start', 'Pause'));
                 return; 
             }
@@ -118,7 +118,7 @@ const Game = (function() {
     Game.changeMode = function() {
         setButtonTitle('mode', plane.changeMode() ? 'Light Mode' : 'Dark Mode');
         clearTimeout(gameStatus.nextRenderTimeout);
-        gameStatus.nextRenderTimeout = setTimeout(() => { worker.send({stop: true});}, 0);
+        gameStatus.nextRenderTimeout = setTimeout(() => { worker.send({next: true});}, 0);
     }
     return Game;
 })();
