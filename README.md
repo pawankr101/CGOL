@@ -6,5 +6,6 @@ The [Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life "Conway
   * Any dead cell with three live neighbours becomes a live cell.
   * All other live cells die in the next generation. Similarly, all other dead cells stay dead.
 
-<img src="Result.png" alt="Game Of Life with initial Random values" width="60%">
-<img src="gliderGunPattern.png" alt="Glider Gun Pattern" width="35%">
+<img src="Result.png" alt="Game Of Life with initial Random values" width="90%">
+<img src="gliderGunPattern.png" alt="Glider Gun Pattern" width="45%">
+<img src="./lighthousereport.png" alt="Chrome Lighthouse Report" width=40%">
