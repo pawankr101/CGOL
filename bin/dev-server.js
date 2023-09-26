@@ -100,7 +100,8 @@ const StaticServer = (function() {
         '.otf': 'application/font-otf',
         '.wasm': 'application/wasm',
         '.pdf': 'application/pdf',
-        '.doc': 'application/msword'
+        '.doc': 'application/msword',
+        '.txt': 'text/plain'
     }
 
     /** @constructor */
@@ -131,14 +132,21 @@ const StaticServer = (function() {
         return new Promise((res, rej) => {
             if(this.server) this.server.close();
             this.server = createServer((request, response) => {
-                const filePath = resolve(publicDir, request.url==='/'? 'index.html' : (request.url[0]==='/' ? request.url.slice(1) : request.url));
-                response.setHeader('Content-Type', mimeType[extname(filePath)]);
-                const fileStream = createReadStream(filePath);
-                fileStream.pipe(response);
-                fileStream.on('error', (err) => {
-                    response.writeHead(500, 'Internal Server Error.', {'Content-Type': 'text/plain'});
+                if(request.method === 'GET') {
+                    const filePath = resolve(publicDir, request.url==='/'? 'index.html' : (request.url[0]==='/' ? request.url.slice(1) : request.url));
+                    response.setHeader('Content-Type', mimeType[extname(filePath)] || 'text/plain');
+                    const fileStream = createReadStream(filePath);
+                    fileStream.pipe(response);
+                    fileStream.on('error', (err) => {
+                        (err.code === 'ENOENT')
+                            ? (response.writeHead(404, 'Resource not Found', {'Content-Type': 'text/plain'}))
+                            : response.writeHead(500, 'Internal Server Error', {'Content-Type': 'text/plain'});
+                        response.end(err.message);
+                    });
+                } else {
+                    response.writeHead(404, 'Resource not Found', {'Content-Type': 'text/plain'});
                     response.end(err.message);
-                });
+                }
             }).on('error', rej).listen(port, host, () => {
                 console.log(`\u001b[32m  [C] Client Application Started.`);
                 console.log(`\u001b[32m  [C] Client Application listening at => \u001b[34mhttp://${host}:${port}`);
