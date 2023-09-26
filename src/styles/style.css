@@ -34,7 +34,6 @@
 }
 .info > button.mode-btn {
     background-color: #41b7d7;
-    cursor: not-allowed;
 }
 .info > button.start-btn {
     background-color: green;

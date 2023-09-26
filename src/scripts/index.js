@@ -105,13 +105,12 @@ const Game = (function() {
 
     Game.stop = function() {
         gameStatus.isStarted = false; gameStatus.isPause = false;
-        disableAll('mode', 'start', 'stop');
         worker.send({stop: true});
         clearTimeout(gameStatus.nextRenderTimeout);
         gameStatus.nextRenderTimeout = setTimeout(() => { worker.send({stop: true});}, 0);
         queueMicrotask(() => {
+            disableAll('stop');
             setButtonTitle('start', 'Start');
-            enableAll('start');
         });
     }
 
